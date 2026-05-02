@@ -1,0 +1,12 @@
+{
+  "name": "letters-i-cannot-send-yet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A notebook website with file-backed saves for posts and memories.",
+  "dependencies": {
+    "@vercel/blob": "^1.1.1"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
