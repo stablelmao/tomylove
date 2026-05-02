@@ -721,6 +721,7 @@
         <button class="primary" type="button" id="savePostButton">Save Post</button>
         <button type="button" id="cancelPostButton">Cancel</button>
       </div>
+      <div class="status" id="postStatus" aria-live="polite"></div>
     </div>
   </div>
 
@@ -756,6 +757,7 @@
         <button class="primary" type="button" id="saveMemoryButton">Save Memory</button>
         <button type="button" id="cancelMemoryButton">Cancel</button>
       </div>
+      <div class="status" id="memoryStatus" aria-live="polite"></div>
     </div>
   </div>
 
@@ -802,6 +804,7 @@
       postBodyInput: document.getElementById("postBodyInput"),
       savePostButton: document.getElementById("savePostButton"),
       cancelPostButton: document.getElementById("cancelPostButton"),
+      postStatus: document.getElementById("postStatus"),
       memoryModal: document.getElementById("memoryModal"),
       memoryModalTitle: document.getElementById("memoryModalTitle"),
       memoryTitleInput: document.getElementById("memoryTitleInput"),
@@ -810,7 +813,8 @@
       memoryNoteInput: document.getElementById("memoryNoteInput"),
       memoryImageInput: document.getElementById("memoryImageInput"),
       saveMemoryButton: document.getElementById("saveMemoryButton"),
-      cancelMemoryButton: document.getElementById("cancelMemoryButton")
+      cancelMemoryButton: document.getElementById("cancelMemoryButton"),
+      memoryStatus: document.getElementById("memoryStatus")
     };
 
     let state = structuredClone(defaultState);
@@ -849,8 +853,21 @@
       });
 
       if (!response.ok) {
-        throw new Error("Data API save failed");
+        let message = "Data API save failed";
+        try {
+          const payload = await response.json();
+          if (payload?.error) {
+            message = payload.error;
+          }
+        } catch (error) {
+        }
+        throw new Error(message);
       }
+    }
+
+    function setStatus(element, message, isError = false) {
+      element.textContent = message;
+      element.style.color = isError ? "#9c4962" : "#847278";
     }
 
     function clampDay(value) {
@@ -997,6 +1014,7 @@
     function resetPostModal() {
       editingPostId = null;
       elements.postModalTitle.textContent = "Create Post";
+      setStatus(elements.postStatus, "");
       elements.postTitleInput.value = "";
       elements.postDateInput.value = new Date().toISOString().slice(0, 10);
       elements.postDayInput.value = "";
@@ -1007,6 +1025,7 @@
       editingMemoryId = null;
       currentMemoryImage = "";
       elements.memoryModalTitle.textContent = "Create Memory";
+      setStatus(elements.memoryStatus, "");
       elements.memoryTitleInput.value = "";
       elements.memoryDateInput.value = new Date().toISOString().slice(0, 10);
       elements.memoryDayInput.value = "";
@@ -1017,6 +1036,7 @@
     function populatePostModal(post) {
       editingPostId = post.id;
       elements.postModalTitle.textContent = "Edit Post";
+      setStatus(elements.postStatus, "");
       elements.postTitleInput.value = post.title;
       elements.postDateInput.value = post.entryDate;
       elements.postDayInput.value = post.day;
@@ -1027,6 +1047,7 @@
       editingMemoryId = memory.id;
       currentMemoryImage = memory.image || "";
       elements.memoryModalTitle.textContent = "Edit Memory";
+      setStatus(elements.memoryStatus, "");
       elements.memoryTitleInput.value = memory.title;
       elements.memoryDateInput.value = memory.date;
       elements.memoryDayInput.value = memory.day;
@@ -1138,45 +1159,55 @@
       elements.cancelMemoryButton.addEventListener("click", () => closeModal(elements.memoryModal));
 
       elements.savePostButton.addEventListener("click", async () => {
-        const post = {
-          id: editingPostId || crypto.randomUUID(),
-          title: elements.postTitleInput.value.trim() || "Untitled page",
-          entryDate: elements.postDateInput.value || "",
-          day: clampDay(elements.postDayInput.value || 1),
-          body: elements.postBodyInput.value.trim()
-        };
+        setStatus(elements.postStatus, "Saving...");
+        try {
+          const post = {
+            id: editingPostId || crypto.randomUUID(),
+            title: elements.postTitleInput.value.trim() || "Untitled page",
+            entryDate: elements.postDateInput.value || "",
+            day: clampDay(elements.postDayInput.value || 1),
+            body: elements.postBodyInput.value.trim()
+          };
 
-        if (editingPostId) {
-          state.posts = state.posts.map((item) => item.id === editingPostId ? post : item);
-        } else {
-          state.posts.push(post);
+          if (editingPostId) {
+            state.posts = state.posts.map((item) => item.id === editingPostId ? post : item);
+          } else {
+            state.posts.push(post);
+          }
+
+          await saveState();
+          renderPosts();
+          closeModal(elements.postModal);
+        } catch (error) {
+          setStatus(elements.postStatus, error.message || "Could not save post.", true);
         }
-
-        await saveState();
-        renderPosts();
-        closeModal(elements.postModal);
       });
 
       elements.saveMemoryButton.addEventListener("click", async () => {
-        const uploaded = await fileToDataUrl(elements.memoryImageInput.files[0]);
-        const memory = {
-          id: editingMemoryId || crypto.randomUUID(),
-          title: elements.memoryTitleInput.value.trim() || "Untitled memory",
-          date: elements.memoryDateInput.value || "",
-          day: clampDay(elements.memoryDayInput.value || 1),
-          note: elements.memoryNoteInput.value.trim(),
-          image: uploaded || currentMemoryImage
-        };
+        setStatus(elements.memoryStatus, "Saving...");
+        try {
+          const uploaded = await fileToDataUrl(elements.memoryImageInput.files[0]);
+          const memory = {
+            id: editingMemoryId || crypto.randomUUID(),
+            title: elements.memoryTitleInput.value.trim() || "Untitled memory",
+            date: elements.memoryDateInput.value || "",
+            day: clampDay(elements.memoryDayInput.value || 1),
+            note: elements.memoryNoteInput.value.trim(),
+            image: uploaded || currentMemoryImage
+          };
 
-        if (editingMemoryId) {
-          state.memories = state.memories.map((item) => item.id === editingMemoryId ? memory : item);
-        } else {
-          state.memories.push(memory);
+          if (editingMemoryId) {
+            state.memories = state.memories.map((item) => item.id === editingMemoryId ? memory : item);
+          } else {
+            state.memories.push(memory);
+          }
+
+          await saveState();
+          renderMemories();
+          closeModal(elements.memoryModal);
+        } catch (error) {
+          setStatus(elements.memoryStatus, error.message || "Could not save memory.", true);
         }
-
-        await saveState();
-        renderMemories();
-        closeModal(elements.memoryModal);
       });
 
       elements.letterArea.addEventListener("click", async (event) => {
