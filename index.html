@@ -859,6 +859,9 @@
           if (payload?.error) {
             message = payload.error;
           }
+          if (payload?.detail) {
+            message = `${message} ${payload.detail}`;
+          }
         } catch (error) {
         }
         throw new Error(message);

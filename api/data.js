@@ -55,7 +55,10 @@ module.exports = async function handler(request, response) {
       const message = process.env.BLOB_READ_WRITE_TOKEN
         ? "Could not read Vercel data storage."
         : "BLOB_READ_WRITE_TOKEN is missing. Connect Vercel Blob in your project settings.";
-      return sendJson(response, 500, { error: message });
+      return sendJson(response, 500, {
+        error: message,
+        detail: error && error.message ? error.message : "Unknown read error"
+      });
     }
   }
 
@@ -76,7 +79,10 @@ module.exports = async function handler(request, response) {
       const message = process.env.BLOB_READ_WRITE_TOKEN
         ? "Could not save Vercel data storage."
         : "BLOB_READ_WRITE_TOKEN is missing. Connect Vercel Blob in your project settings.";
-      return sendJson(response, 400, { error: message });
+      return sendJson(response, 400, {
+        error: message,
+        detail: error && error.message ? error.message : "Unknown save error"
+      });
     }
   }
 
