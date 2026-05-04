@@ -71,6 +71,7 @@ module.exports = async function handler(request, response) {
 
       await put(DATA_PATHNAME, JSON.stringify(state, null, 2), {
         access: BLOB_ACCESS,
+        addRandomSuffix: false,
         allowOverwrite: true,
         contentType: "application/json"
       });
