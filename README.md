@@ -37,6 +37,7 @@ This project now uses:
 Optional:
 
 - Set `NOTEBOOK_DATA_PATHNAME` if you want a custom blob pathname
+- Set `NOTEBOOK_BLOB_ACCESS` if your Blob store is `private` instead of `public`
 
 ## Hosting requirement
 

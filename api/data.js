@@ -6,6 +6,7 @@ const DEFAULT_STATE = {
 };
 
 const DATA_PATHNAME = process.env.NOTEBOOK_DATA_PATHNAME || "notebook/notebook-data.json";
+const BLOB_ACCESS = process.env.NOTEBOOK_BLOB_ACCESS || "public";
 
 function sanitizeState(payload) {
   return {
@@ -42,7 +43,7 @@ async function readBody(request) {
 module.exports = async function handler(request, response) {
   if (request.method === "GET") {
     try {
-      const result = await get(DATA_PATHNAME, { access: "private" });
+      const result = await get(DATA_PATHNAME, { access: BLOB_ACCESS });
 
       if (!result) {
         return sendJson(response, 200, DEFAULT_STATE);
@@ -69,7 +70,7 @@ module.exports = async function handler(request, response) {
       const state = sanitizeState(parsed);
 
       await put(DATA_PATHNAME, JSON.stringify(state, null, 2), {
-        access: "private",
+        access: BLOB_ACCESS,
         allowOverwrite: true,
         contentType: "application/json"
       });
