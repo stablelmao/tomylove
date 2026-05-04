@@ -766,6 +766,7 @@
   <script>
     const ACCESS_STORAGE_KEY = "letters-cannot-send-yet-open";
     const DATA_API_URL = "/api/data";
+    const LOCAL_CACHE_KEY = "letters-cannot-send-yet-cache";
     const PASSWORD_SALT = ["rose", "notebook", "1200"].join("-");
     const PASSWORD_HASH = [
       "c5d967753a4c7714",
@@ -830,6 +831,8 @@
     }
 
     async function loadState() {
+      const cachedState = loadCachedState();
+
       try {
         const response = await fetch(DATA_API_URL, { cache: "no-store" });
         if (!response.ok) {
@@ -837,9 +840,15 @@
         }
 
         const apiData = await response.json();
-        return sanitizeState(apiData);
+        const remoteState = sanitizeState(apiData);
+        if (!hasContent(remoteState) && hasContent(cachedState)) {
+          return cachedState;
+        }
+
+        cacheState(remoteState);
+        return remoteState;
       } catch (error) {
-        return structuredClone(defaultState);
+        return cachedState || structuredClone(defaultState);
       }
     }
 
@@ -866,6 +875,31 @@
         }
         throw new Error(message);
       }
+
+      cacheState(state);
+    }
+
+    function loadCachedState() {
+      try {
+        const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+        if (!raw) {
+          return null;
+        }
+        return sanitizeState(JSON.parse(raw));
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function cacheState(nextState) {
+      try {
+        localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(sanitizeState(nextState)));
+      } catch (error) {
+      }
+    }
+
+    function hasContent(candidate) {
+      return Boolean(candidate && (candidate.posts?.length || candidate.memories?.length));
     }
 
     function setStatus(element, message, isError = false) {
@@ -1114,6 +1148,7 @@
       const parsed = JSON.parse(text);
       state = sanitizeState(parsed);
       await saveState();
+      cacheState(state);
       render();
     }
 

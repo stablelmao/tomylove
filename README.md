@@ -11,6 +11,7 @@ This project now uses:
 - The frontend reads and writes through `GET /api/data` and `POST /api/data`
 - The password lock is still handled in the frontend
 - On Vercel, `api/data.js` stores the notebook data in Vercel Blob instead of writing to the repo filesystem
+- The frontend also keeps a local browser cache so your latest save appears immediately while Blob overwrite propagation catches up
 
 ## Run locally
 
